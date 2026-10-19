@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upload de Filme → Link Permanente</title>
+  <title>Upload de Arquivo → Link Permanente (Catbox)</title>
   <style>
     body { font-family: system-ui, sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
     .box { border: 2px dashed #ccc; padding: 2rem; text-align: center; border-radius: 8px; }
@@ -16,11 +16,11 @@
 </head>
 <body>
 
-  <h1>📤 Upload de Filme</h1>
-  <p>Selecione o arquivo (MP4, MKV, AVI, etc.) e gere um link permanente para o seu site.</p>
+  <h1>📤 Upload para Link Permanente</h1>
+  <p>Selecione um arquivo de até <strong>25 MB</strong> (ou mais, o limite do Catbox é 200 MB).</p>
 
   <div class="box">
-    <input type="file" id="fileInput" accept="video/*">
+    <input type="file" id="fileInput">
     <br>
     <button id="uploadBtn">Enviar e gerar link</button>
   </div>
@@ -28,9 +28,6 @@
   <div id="result"></div>
 
   <script>
-    // ⚠️ SUBSTITUA PELA SUA CHAVE DE API DO PIXELDRAIN
-    const API_KEY = '33110902-bfb8-4f0c-aae4-d79457f547b1';
-
     const fileInput = document.getElementById('fileInput');
     const uploadBtn = document.getElementById('uploadBtn');
     const resultDiv = document.getElementById('result');
@@ -38,26 +35,25 @@
     uploadBtn.addEventListener('click', async () => {
       const file = fileInput.files[0];
       if (!file) {
-        alert('Por favor, selecione um arquivo de vídeo.');
+        alert('Por favor, selecione um arquivo.');
         return;
       }
 
-      // Feedback visual
       uploadBtn.disabled = true;
       uploadBtn.textContent = 'Enviando...';
-      resultDiv.innerHTML = '<p>⏳ Fazendo upload... Isso pode levar alguns minutos para arquivos grandes.</p>';
+      resultDiv.innerHTML = '<p>⏳ Fazendo upload... Aguarde.</p>';
       resultDiv.classList.remove('erro');
 
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('reqtype', 'fileupload');
+      // Para upload anônimo, não é necessário enviar userhash.
+      // Se tiver uma conta no Catbox, você pode adicionar seu userhash para gerenciar os arquivos depois:
+      // formData.append('userhash', 'SEU_USERHASH_AQUI');
+      formData.append('fileToUpload', file);
 
       try {
-        const response = await fetch('https://pixeldrain.com/api/file/', {
+        const response = await fetch('https://catbox.moe/user/api.php', {
           method: 'POST',
-          headers: {
-            // Autenticação Basic: usuário vazio, senha = API key
-            'Authorization': 'Basic ' + btoa(':' + API_KEY)
-          },
           body: formData
         });
 
@@ -66,15 +62,13 @@
           throw new Error(`Erro ${response.status}: ${erro}`);
         }
 
-        const data = await response.json();
-        const fileId = data.id;
-        const permanentLink = `https://pixeldrain.com/u/${fileId}`;
+        const linkPermanente = await response.text();
 
         resultDiv.innerHTML = `
           <p>✅ <strong>Upload concluído!</strong></p>
           <p>Link permanente:</p>
-          <p><a href="${permanentLink}" target="_blank" rel="noopener">${permanentLink}</a></p>
-          <p><button onclick="navigator.clipboard.writeText('${permanentLink}')">📋 Copiar link</button></p>
+          <p><a href="${linkPermanente}" target="_blank" rel="noopener">${linkPermanente}</a></p>
+          <p><button onclick="navigator.clipboard.writeText('${linkPermanente}')">📋 Copiar link</button></p>
         `;
       } catch (error) {
         console.error(error);
