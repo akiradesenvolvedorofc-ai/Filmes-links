@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload de Filme → Link Permanente</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+    .box { border: 2px dashed #ccc; padding: 2rem; text-align: center; border-radius: 8px; }
+    input[type="file"] { margin: 1rem 0; }
+    button { padding: 0.8rem 1.5rem; font-size: 1rem; cursor: pointer; background: #0070f3; color: #fff; border: none; border-radius: 4px; }
+    button:disabled { background: #999; cursor: not-allowed; }
+    #result { margin-top: 1.5rem; padding: 1rem; background: #f0f9ff; border-radius: 6px; word-break: break-all; }
+    .erro { background: #fee2e2; color: #b91c1c; }
+  </style>
+</head>
+<body>
+
+  <h1>📤 Upload de Filme</h1>
+  <p>Selecione o arquivo (MP4, MKV, AVI, etc.) e gere um link permanente para o seu site.</p>
+
+  <div class="box">
+    <input type="file" id="fileInput" accept="video/*">
+    <br>
+    <button id="uploadBtn">Enviar e gerar link</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    // ⚠️ SUBSTITUA PELA SUA CHAVE DE API DO PIXELDRAIN
+    const API_KEY = '33110902-bfb8-4f0c-aae4-d79457f547b1';
+
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const resultDiv = document.getElementById('result');
+
+    uploadBtn.addEventListener('click', async () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        alert('Por favor, selecione um arquivo de vídeo.');
+        return;
+      }
+
+      // Feedback visual
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Enviando...';
+      resultDiv.innerHTML = '<p>⏳ Fazendo upload... Isso pode levar alguns minutos para arquivos grandes.</p>';
+      resultDiv.classList.remove('erro');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('https://pixeldrain.com/api/file/', {
+          method: 'POST',
+          headers: {
+            // Autenticação Basic: usuário vazio, senha = API key
+            'Authorization': 'Basic ' + btoa(':' + API_KEY)
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const erro = await response.text();
+          throw new Error(`Erro ${response.status}: ${erro}`);
+        }
+
+        const data = await response.json();
+        const fileId = data.id;
+        const permanentLink = `https://pixeldrain.com/u/${fileId}`;
+
+        resultDiv.innerHTML = `
+          <p>✅ <strong>Upload concluído!</strong></p>
+          <p>Link permanente:</p>
+          <p><a href="${permanentLink}" target="_blank" rel="noopener">${permanentLink}</a></p>
+          <p><button onclick="navigator.clipboard.writeText('${permanentLink}')">📋 Copiar link</button></p>
+        `;
+      } catch (error) {
+        console.error(error);
+        resultDiv.innerHTML = `<p>❌ Falha no upload: ${error.message}</p>`;
+        resultDiv.classList.add('erro');
+      } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Enviar e gerar link';
+      }
+    });
+  </script>
+
+</body>
+</html>
